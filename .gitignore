@@ -1,0 +1,10 @@
+# Benchmark artifacts
+benchmark-runs/
+benchmark-results.csv
+
+# Node modules (if any)
+node_modules/
+
+# OS files
+.DS_Store
+
