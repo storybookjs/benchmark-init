@@ -80,13 +80,14 @@ enableImmutableInstalls: false
 }
 
 /**
- * Generate the Storybook init command based on package manager and configuration
+ * Generate the Storybook init command for execution (without copy step, assumes already in test directory)
  */
-export function generateStorybookCommand(
+function generateExecutionCommand(
   version: { name: string; command: string },
   packageManager: string,
   features: { name: string; flags: string[] }
 ): string {
+  // Storybook CLI accepts: npm, yarn1, yarn2, pnpm, bun
   const flags = ["--yes", "--no-dev", `--package-manager=${packageManager}`, ...features.flags];
   const flagsString = flags.join(" ");
 
@@ -94,10 +95,10 @@ export function generateStorybookCommand(
     case "bun":
       return `bunx ${version.command} init ${flagsString}`;
     case "yarn2":
-      // Use yarn dlx for yarn2 (berry) with versioned packages
+      // For yarn2, use yarn dlx
       return `yarn dlx ${version.command} init ${flagsString}`;
     case "yarn":
-      // Use npx for yarn (classic) - yarn dlx doesn't work well with yarn classic
+      // Use npx for yarn1 (classic) - yarn dlx doesn't work well with yarn classic
       return `npx ${version.command} init ${flagsString}`;
     case "pnpm":
       return `pnpm create ${version.command} ${flagsString}`;
@@ -106,6 +107,49 @@ export function generateStorybookCommand(
     default:
       // Fallback to npx for unknown package managers
       return `npx ${version.command} init ${flagsString}`;
+  }
+}
+
+/**
+ * Generate the Storybook init command for CSV display (includes full setup with copy step)
+ * Note: Replace <test-dir> with actual test directory path when running manually
+ */
+export function generateStorybookCommand(
+  version: { name: string; command: string },
+  packageManager: string,
+  features: { name: string; flags: string[] }
+): string {
+  // Storybook CLI accepts: npm, yarn1, yarn2, pnpm, bun
+  const flags = ["--yes", "--no-dev", `--package-manager=${packageManager}`, ...features.flags];
+  const flagsString = flags.join(" ");
+
+  // All commands start by copying the react project to a test directory
+  const copyProject = `cp -r react <test-dir> && cd <test-dir>`;
+
+  switch (packageManager) {
+    case "bun":
+      return `${copyProject} && bunx ${version.command} init ${flagsString}`;
+    case "yarn2": {
+      // For yarn2, include full setup: configure yarn berry, then init
+      const setupCommands = [
+        copyProject,
+        `printf "nodeLinker: node-modules\\nenableImmutableInstalls: false\\n" > .yarnrc.yml`,
+        `CI=true yarn set version berry`,
+        `CI=true YARN_ENABLE_IMMUTABLE_INSTALLS=false yarn install --mode=update-lockfile`,
+        `yarn dlx ${version.command} init ${flagsString}`,
+      ];
+      return setupCommands.join(" && ");
+    }
+    case "yarn":
+      // Use npx for yarn1 (classic) - yarn dlx doesn't work well with yarn classic
+      return `${copyProject} && npx ${version.command} init ${flagsString}`;
+    case "pnpm":
+      return `${copyProject} && pnpm create ${version.command} ${flagsString}`;
+    case "npm":
+      return `${copyProject} && npm create ${version.command} -- ${flagsString}`;
+    default:
+      // Fallback to npx for unknown package managers
+      return `${copyProject} && npx ${version.command} init ${flagsString}`;
   }
 }
 
@@ -123,7 +167,8 @@ export function runStorybookInit(
   cacheService: typeof import("./cacheService.js"),
   processTracker: Set<ChildProcess>
 ): Promise<TestResult> {
-  const fullCommand = generateStorybookCommand(version, packageManager, features);
+  // Use execution command (without copy step, since we're already in testDir)
+  const fullCommand = generateExecutionCommand(version, packageManager, features);
 
   console.log(`  Running: ${fullCommand}`);
 
