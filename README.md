@@ -20,6 +20,7 @@ The benchmark measures Storybook CLI initialization performance across multiple 
 - **Smoke Tests**: Optional verification that Storybook builds successfully after initialization
 - **Statistical Analysis**: Calculates mean, median, min, max, and standard deviation across multiple iterations
 - **CSV Export**: Results saved in CSV format optimized for Notion and Google Sheets
+- **Performance Summary**: Generate markdown reports comparing versions with percentage differences
 - **Graceful Shutdown**: Saves partial results on interruption (Ctrl+C)
 - **TypeScript**: Fully typed codebase with type safety
 - **Biome Linting**: Code quality and formatting with Biome
@@ -121,6 +122,69 @@ Results are saved to `benchmark-results.csv` in the project root with the follow
 
 This format is optimized for importing into Notion or Google Sheets.
 
+## Generating Performance Summary
+
+After running benchmarks, you can generate a markdown summary report that compares performance across different Storybook versions.
+
+### Running the Summary Generator
+
+```bash
+cd benchmark
+npm run summary
+# or
+bun generate-summary.ts
+```
+
+### Usage
+
+The script accepts optional arguments:
+
+```bash
+bun generate-summary.ts [csv-file] [output-file]
+```
+
+- **csv-file**: Path to the CSV results file (defaults to `../benchmark-results.csv`)
+- **output-file**: Path for the generated markdown file (defaults to `benchmark-summary.md`)
+
+### Summary Report Contents
+
+The generated markdown report includes:
+
+1. **Configuration-Based Comparisons**: Groups results by:
+   - Package manager (yarn, yarn2, npm, bun)
+   - Feature combinations (a11y+docs, a11y+test+docs, etc.)
+   - Cache settings (with/without cache, with/without Playwright cache)
+
+2. **Version Comparison Tables**: For each configuration group, shows:
+   - Duration metrics (mean, median, min, max, standard deviation)
+   - Percentage difference vs baseline version
+   - Visual indicators:
+     - 🟢 = faster (negative percentage)
+     - 🔴 = slower (positive percentage)
+     - ⚪ = same (0%)
+
+3. **Overall Statistics**: Aggregated performance metrics:
+   - Average duration by version across all configurations
+   - Comparison vs fastest version
+   - Number of configurations and tests per version
+
+### Example Output
+
+```markdown
+### bun - a11y+docs (without cache)
+
+| Version | Mean (s) | Median (s) | vs Baseline |
+|---------|---------|------------|-------------|
+| **10.0.7** (baseline) | 14.80 | 14.80 | - |
+| 0.0.0-pr-32717-sha-47ba2989 | 13.13 | 13.13 | 🟢 -11.28% |
+| 10.1.0-alpha.10 | 15.13 | 15.13 | 🔴 +2.23% |
+```
+
+The summary helps identify:
+- Performance improvements or regressions between versions
+- Best-performing versions for specific configurations
+- Overall performance trends across the test matrix
+
 ## Cache Management
 
 The script automatically manages caches:
@@ -174,6 +238,7 @@ benchmark/
 ### Scripts
 
 - `npm run benchmark` - Run the benchmark
+- `npm run summary` - Generate markdown performance summary from CSV results
 - `npm run lint` - Check for linting issues
 - `npm run lint:fix` - Auto-fix linting issues
 - `npm run format` - Format code with Biome
