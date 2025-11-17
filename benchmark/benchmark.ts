@@ -209,6 +209,13 @@ async function main(): Promise<void> {
       // Check if test feature is selected
       const hasTestFeature = config.features.flags.includes("test");
 
+      // Generate the command that would have been run
+      const command = testRunnerService.generateStorybookCommand(
+        config.version,
+        config.packageManager,
+        config.features
+      );
+
       const errorRecord: BenchmarkResult = {
         testId: config.testId,
         version: config.version.name,
@@ -228,6 +235,7 @@ async function main(): Promise<void> {
         smokeTestStatus: "-",
         smokeTestPassCount: "-",
         smokeTestFailCount: "-",
+        command,
       };
       state.results.push(errorRecord);
       if (state.shouldSaveOnExit) {

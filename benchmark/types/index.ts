@@ -40,6 +40,7 @@ export interface BenchmarkResult {
   smokeTestStatus: string;
   smokeTestPassCount: string | number;
   smokeTestFailCount: string | number;
+  command: string;
 }
 
 export interface BenchmarkState {

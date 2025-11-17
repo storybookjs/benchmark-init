@@ -80,6 +80,36 @@ enableImmutableInstalls: false
 }
 
 /**
+ * Generate the Storybook init command based on package manager and configuration
+ */
+export function generateStorybookCommand(
+  version: { name: string; command: string },
+  packageManager: string,
+  features: { name: string; flags: string[] }
+): string {
+  const flags = ["--yes", "--no-dev", `--package-manager=${packageManager}`, ...features.flags];
+  const flagsString = flags.join(" ");
+
+  switch (packageManager) {
+    case "bun":
+      return `bunx ${version.command} init ${flagsString}`;
+    case "yarn2":
+      // Use yarn dlx for yarn2 (berry) with versioned packages
+      return `yarn dlx ${version.command} init ${flagsString}`;
+    case "yarn":
+      // Use npx for yarn (classic) - yarn dlx doesn't work well with yarn classic
+      return `npx ${version.command} init ${flagsString}`;
+    case "pnpm":
+      return `pnpm create ${version.command} ${flagsString}`;
+    case "npm":
+      return `npm create ${version.command} -- ${flagsString}`;
+    default:
+      // Fallback to npx for unknown package managers
+      return `npx ${version.command} init ${flagsString}`;
+  }
+}
+
+/**
  * Run Storybook init command and measure time
  * Note: This function uses spawn directly to track processes and measure duration.
  * The spawned processes should be tracked by processService for cleanup.
@@ -93,36 +123,7 @@ export function runStorybookInit(
   cacheService: typeof import("./cacheService.js"),
   processTracker: Set<ChildProcess>
 ): Promise<TestResult> {
-  // Use the appropriate command based on package manager
-  // For commands with 'init', flags come after 'init'
-  // For 'create' commands, flags come after the version
-  const flags = ["--yes", "--no-dev", `--package-manager=${packageManager}`, ...features.flags];
-  const flagsString = flags.join(" ");
-
-  let fullCommand: string;
-  switch (packageManager) {
-    case "bun":
-      fullCommand = `bunx ${version.command} init ${flagsString}`;
-      break;
-    case "yarn2":
-      // Use yarn dlx for yarn2 (berry) with versioned packages
-      fullCommand = `yarn dlx ${version.command} init ${flagsString}`;
-      break;
-    case "yarn":
-      // Use npx for yarn (classic) - yarn dlx doesn't work well with yarn classic
-      fullCommand = `npx ${version.command} init ${flagsString}`;
-      break;
-    case "pnpm":
-      fullCommand = `pnpm create ${version.command} ${flagsString}`;
-      break;
-    case "npm":
-      fullCommand = `npm create ${version.command} -- ${flagsString}`;
-      break;
-    default:
-      // Fallback to npx for unknown package managers
-      fullCommand = `npx ${version.command} init ${flagsString}`;
-      break;
-  }
+  const fullCommand = generateStorybookCommand(version, packageManager, features);
 
   console.log(`  Running: ${fullCommand}`);
 
@@ -459,6 +460,9 @@ export async function runBenchmark(
           : "partial"
       : "-";
 
+  // Generate the command that was run (reuse the same logic)
+  const command = generateStorybookCommand(version, packageManager, features);
+
   // Record result with statistics
   const record: BenchmarkResult = {
     testId,
@@ -479,6 +483,7 @@ export async function runBenchmark(
     smokeTestStatus,
     smokeTestPassCount: state.enableSmokeTest ? smokeTestPassCount : "-",
     smokeTestFailCount: state.enableSmokeTest ? smokeTestFailCount : "-",
+    command,
   };
 
   state.results.push(record);

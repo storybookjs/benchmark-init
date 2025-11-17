@@ -31,6 +31,7 @@ export function saveResults(results: BenchmarkResult[], resultsFile: string, app
     "Smoke Test Status",
     "Smoke Test Pass Count",
     "Smoke Test Fail Count",
+    "Command",
   ];
 
   // CSV rows
@@ -53,6 +54,7 @@ export function saveResults(results: BenchmarkResult[], resultsFile: string, app
     r.smokeTestStatus !== undefined ? r.smokeTestStatus : "-",
     r.smokeTestPassCount !== undefined ? r.smokeTestPassCount.toString() : "-",
     r.smokeTestFailCount !== undefined ? r.smokeTestFailCount.toString() : "-",
+    r.command || "",
   ]);
 
   // Combine header and rows
@@ -258,6 +260,7 @@ export function replaceTestResult(
     newResult.smokeTestFailCount !== undefined
       ? newResult.smokeTestFailCount.toString()
       : "-",
+    newResult.command || "",
   ];
   const newRowString = newRow.map((cell) => `"${cell}"`).join(",");
 
@@ -334,6 +337,7 @@ export function loadExistingResults(
             smokeTestStatus: parseValue(values[15]) || "-",
             smokeTestPassCount: parseValue(values[16]) || "-",
             smokeTestFailCount: parseValue(values[17]) || "-",
+            command: parseValue(values[18]) || "",
           });
         } else {
           results.push({
@@ -355,6 +359,7 @@ export function loadExistingResults(
             smokeTestStatus: "-",
             smokeTestPassCount: "-",
             smokeTestFailCount: "-",
+            command: parseValue(values[9]) || "",
           });
         }
       }
