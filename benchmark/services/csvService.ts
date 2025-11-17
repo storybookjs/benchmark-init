@@ -219,6 +219,75 @@ export function removeResultsForTests(resultsFile: string, testIds: Set<string>)
 }
 
 /**
+ * Replace a specific test result in CSV (used for rerunning failed tests)
+ * Only replaces if the new result is successful, otherwise keeps the old entry
+ */
+export function replaceTestResult(
+  resultsFile: string,
+  newResult: BenchmarkResult
+): void {
+  if (!existsSync(resultsFile)) {
+    return;
+  }
+
+  const existingContent = readFileSync(resultsFile, "utf-8");
+  const existingLines = existingContent.split("\n").filter((line) => line.trim());
+  const header = existingLines[0];
+
+  // Convert new result to CSV row format
+  const newRow = [
+    newResult.testId,
+    newResult.version,
+    newResult.packageManager,
+    newResult.features,
+    newResult.withCache,
+    newResult.withPlaywrightCache,
+    newResult.iterations || 1,
+    newResult.successCount !== undefined ? newResult.successCount.toString() : "1",
+    newResult.durationMean !== undefined ? newResult.durationMean : "0.00",
+    newResult.durationMedian !== undefined ? newResult.durationMedian : "0.00",
+    newResult.durationMin !== undefined ? newResult.durationMin : "0.00",
+    newResult.durationMax !== undefined ? newResult.durationMax : "0.00",
+    newResult.durationStdDev !== undefined ? newResult.durationStdDev : "0.00",
+    newResult.success,
+    newResult.error || "",
+    newResult.smokeTestStatus !== undefined ? newResult.smokeTestStatus : "-",
+    newResult.smokeTestPassCount !== undefined
+      ? newResult.smokeTestPassCount.toString()
+      : "-",
+    newResult.smokeTestFailCount !== undefined
+      ? newResult.smokeTestFailCount.toString()
+      : "-",
+  ];
+  const newRowString = newRow.map((cell) => `"${cell}"`).join(",");
+
+  // Replace the matching test ID entry (remove iteration suffix for matching)
+  const baseTestId = newResult.testId.replace(/-iter\d+$/, "");
+  let replaced = false;
+
+  const updatedLines = existingLines.slice(1).map((line) => {
+    const match = line.match(/^"([^"]+)"/);
+    if (match) {
+      const lineTestId = match[1].replace(/-iter\d+$/, "");
+      // Only replace if test IDs match AND new result is successful
+      if (lineTestId === baseTestId && newResult.success === "yes") {
+        replaced = true;
+        return newRowString;
+      }
+    }
+    return line;
+  });
+
+  // If no existing entry was found and replaced, append the new result
+  if (!replaced && newResult.success === "yes") {
+    updatedLines.push(newRowString);
+  }
+
+  const newContent = [header, ...updatedLines].join("\n");
+  writeFileSync(resultsFile, newContent);
+}
+
+/**
  * Load existing results into memory, excluding specified test IDs
  */
 export function loadExistingResults(

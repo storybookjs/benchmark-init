@@ -6,7 +6,7 @@ import { BENCHMARK_DIR, RESULTS_FILE } from "./config.js";
 
 import * as configService from "./services/configService.js";
 import * as csvService from "./services/csvService.js";
-import { loadExistingResults, removeResultsForTests } from "./services/csvService.js";
+import { loadExistingResults, replaceTestResult } from "./services/csvService.js";
 import { parseExistingResults } from "./services/csvService.js";
 import * as loggerService from "./services/loggerService.js";
 import * as processService from "./services/processService.js";
@@ -86,21 +86,22 @@ async function main(): Promise<void> {
     p.log.info(`Found ${selection.failedConfigs.length} failed test configuration(s) to rerun`);
     const configs = selection.failedConfigs;
 
-    // Remove old results for tests being rerun
-    const testsToRerun = new Set<string>(configs.map((c) => c.testId));
-    removeResultsForTests(state.resultsFile, testsToRerun);
-    p.log.info(`Removed ${testsToRerun.size} old result(s) from CSV`);
-
-    // Run the failed tests
-    state.shouldSaveOnExit = true;
+    // Run the failed tests and replace entries step-by-step as they succeed
+    state.shouldSaveOnExit = false; // We'll handle saving manually after each test
     for (let i = 0; i < configs.length; i++) {
       const config = configs[i];
       console.log(`\n[${i + 1}/${configs.length}] Running failed test: ${config.testId}`);
-      await testRunnerService.runBenchmark(config, state, services);
+      const result = await testRunnerService.runBenchmark(config, state, services);
+      
+      // Replace the old entry in CSV if the rerun was successful
+      if (result.success === "yes") {
+        replaceTestResult(state.resultsFile, result);
+        p.log.success(`Replaced failed entry for ${config.testId} with successful result`);
+      } else {
+        p.log.warn(`Test ${config.testId} still failed, keeping original entry`);
+      }
     }
 
-    // Final save
-    csvService.saveResults(state.results, state.resultsFile, false);
     p.outro("Rerun complete!");
     return;
   }
