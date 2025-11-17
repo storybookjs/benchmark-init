@@ -1,19 +1,11 @@
-import { existsSync, readFileSync, writeFileSync } from "fs";
-import { RESULTS_FILE, FEATURE_COMBINATIONS } from "../config.js";
-import type {
-  BenchmarkResult,
-  BenchmarkConfig,
-  ParsedResults,
-} from "../types/index.js";
+import { existsSync, readFileSync, writeFileSync } from "node:fs";
+import { FEATURE_COMBINATIONS, RESULTS_FILE } from "../config.js";
+import type { BenchmarkConfig, BenchmarkResult, ParsedResults } from "../types/index.js";
 
 /**
  * Save results to CSV file
  */
-export function saveResults(
-  results: BenchmarkResult[],
-  resultsFile: string,
-  append = false
-): void {
+export function saveResults(results: BenchmarkResult[], resultsFile: string, append = false): void {
   if (results.length === 0 && !append) {
     console.log("\nNo results to save.");
     return;
@@ -59,12 +51,8 @@ export function saveResults(
     r.success,
     r.error || "",
     r.smokeTestStatus !== undefined ? r.smokeTestStatus : "-",
-    r.smokeTestPassCount !== undefined
-      ? r.smokeTestPassCount.toString()
-      : "-",
-    r.smokeTestFailCount !== undefined
-      ? r.smokeTestFailCount.toString()
-      : "-",
+    r.smokeTestPassCount !== undefined ? r.smokeTestPassCount.toString() : "-",
+    r.smokeTestFailCount !== undefined ? r.smokeTestFailCount.toString() : "-",
   ]);
 
   // Combine header and rows
@@ -76,20 +64,18 @@ export function saveResults(
   if (append && existsSync(resultsFile)) {
     // Read existing results and merge
     const existingContent = readFileSync(resultsFile, "utf-8");
-    const existingLines = existingContent
-      .split("\n")
-      .filter((line) => line.trim());
+    const existingLines = existingContent.split("\n").filter((line) => line.trim());
     const existingHeaders = existingLines[0];
     const existingRows = existingLines.slice(1);
 
     // Create a map of existing test IDs
     const existingTestIds = new Set<string>();
-    existingRows.forEach((row) => {
+    for (const row of existingRows) {
       const match = row.match(/^"([^"]+)"/);
       if (match) {
         existingTestIds.add(match[1]);
       }
-    });
+    }
 
     // Filter out duplicates from new results
     const newRows = rows.filter((row) => !existingTestIds.has(row[0] as string));
@@ -129,9 +115,7 @@ export function parseExistingResults(resultsFile: string): ParsedResults {
       return { completed: new Set(), failed: new Set(), failedConfigs: [] }; // Only header or empty
     }
 
-    const headers = lines[0]
-      .split(",")
-      .map((h) => h.replace(/^"|"$/g, "").trim());
+    const headers = lines[0].split(",").map((h) => h.replace(/^"|"$/g, "").trim());
 
     // Find column indices
     const testIdIndex = headers.indexOf("Test ID");
@@ -146,9 +130,9 @@ export function parseExistingResults(resultsFile: string): ParsedResults {
     const failedTestIds = new Set<string>();
     const failedConfigsMap = new Map<string, BenchmarkConfig>(); // Use Map to avoid duplicates
 
-    lines.slice(1).forEach((line) => {
+    for (const line of lines.slice(1)) {
       const values = line.match(/("(?:[^"\\]|\\.)*"|[^,]+)/g);
-      if (!values || values.length === 0) return;
+      if (!values || values.length === 0) continue;
 
       // Extract values, removing quotes
       const getValue = (index: number): string | null => {
@@ -157,7 +141,7 @@ export function parseExistingResults(resultsFile: string): ParsedResults {
       };
 
       const testId = getValue(testIdIndex);
-      if (!testId) return;
+      if (!testId) continue;
 
       // Extract base test ID (remove iteration suffix if present)
       const baseTestId = testId.replace(/-iter\d+$/, "");
@@ -177,9 +161,7 @@ export function parseExistingResults(resultsFile: string): ParsedResults {
 
         if (versionName && packageManager && featuresName) {
           // Find matching feature combination
-          const features = FEATURE_COMBINATIONS.find(
-            (f) => f.name === featuresName
-          );
+          const features = FEATURE_COMBINATIONS.find((f) => f.name === featuresName);
           if (features) {
             const configKey = `${baseTestId}-${versionName}-${packageManager}-${featuresName}-${withCacheStr}-${withPlaywrightCacheStr}`;
             if (!failedConfigsMap.has(configKey)) {
@@ -198,7 +180,7 @@ export function parseExistingResults(resultsFile: string): ParsedResults {
           }
         }
       }
-    });
+    }
 
     return {
       completed: completedTestIds,
@@ -206,8 +188,7 @@ export function parseExistingResults(resultsFile: string): ParsedResults {
       failedConfigs: Array.from(failedConfigsMap.values()),
     };
   } catch (error) {
-    const errorMessage =
-      error instanceof Error ? error.message : String(error);
+    const errorMessage = error instanceof Error ? error.message : String(error);
     console.warn(`Warning: Could not parse existing results: ${errorMessage}`);
     return { completed: new Set(), failed: new Set(), failedConfigs: [] };
   }
@@ -216,10 +197,7 @@ export function parseExistingResults(resultsFile: string): ParsedResults {
 /**
  * Remove results for specific test IDs from CSV
  */
-export function removeResultsForTests(
-  resultsFile: string,
-  testIds: Set<string>
-): void {
+export function removeResultsForTests(resultsFile: string, testIds: Set<string>): void {
   if (!existsSync(resultsFile)) {
     return;
   }
@@ -259,7 +237,7 @@ export function loadExistingResults(
     return results;
   }
 
-  existingLines.slice(1).forEach((line) => {
+  for (const line of existingLines.slice(1)) {
     const values = line.match(/("(?:[^"\\]|\\.)*"|[^,]+)/g);
     if (values && values.length >= 9) {
       const parseValue = (val: string) => val.replace(/^"|"$/g, "");
@@ -275,8 +253,8 @@ export function loadExistingResults(
             features: parseValue(values[3]),
             withCache: parseValue(values[4]),
             withPlaywrightCache: parseValue(values[5]),
-            iterations: parseInt(parseValue(values[6]), 10) || 1,
-            successCount: parseInt(parseValue(values[7]), 10) || 1,
+            iterations: Number.parseInt(parseValue(values[6]), 10) || 1,
+            successCount: Number.parseInt(parseValue(values[7]), 10) || 1,
             durationMean: parseValue(values[8]),
             durationMedian: parseValue(values[9]),
             durationMin: parseValue(values[10]),
@@ -312,8 +290,7 @@ export function loadExistingResults(
         }
       }
     }
-  });
+  }
 
   return results;
 }
-

@@ -89,4 +89,3 @@ export interface ParsedResults {
   failed: Set<string>;
   failedConfigs: BenchmarkConfig[];
 }
-

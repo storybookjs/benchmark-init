@@ -1,5 +1,5 @@
-import { join } from "path";
-import { existsSync, rmSync, cpSync } from "fs";
+import { cpSync, existsSync, rmSync } from "node:fs";
+import { join } from "node:path";
 import { BENCHMARK_DIR, REACT_PROJECT } from "../config.js";
 
 /**
@@ -28,4 +28,3 @@ export function cleanupTestProject(testId: string): void {
     rmSync(testDir, { recursive: true, force: true });
   }
 }
-

@@ -1,7 +1,7 @@
-import { join, dirname } from "path";
-import { fileURLToPath } from "url";
-import { homedir } from "os";
-import type { Version, FeatureCombination } from "./types/index.js";
+import { homedir } from "node:os";
+import { dirname, join } from "node:path";
+import { fileURLToPath } from "node:url";
+import type { FeatureCombination, Version } from "./types/index.js";
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = dirname(__filename);
@@ -43,15 +43,8 @@ export const CACHE_PATHS: {
   playwright: string;
 } = {
   npm: [join(homedir(), ".npm", "_npx"), join(homedir(), ".npm", "_cacache")],
-  yarn: [
-    join(homedir(), ".yarn", "cache"),
-    join(homedir(), ".yarn", "berry", "cache"),
-  ],
-  yarn2: [
-    join(homedir(), ".yarn", "cache"),
-    join(homedir(), ".yarn", "berry", "cache"),
-  ],
+  yarn: [join(homedir(), ".yarn", "cache"), join(homedir(), ".yarn", "berry", "cache")],
+  yarn2: [join(homedir(), ".yarn", "cache"), join(homedir(), ".yarn", "berry", "cache")],
   bun: [join(homedir(), ".bun", "install", "cache")],
   playwright: join(homedir(), "Library", "Caches", "ms-playwright"),
 };
-

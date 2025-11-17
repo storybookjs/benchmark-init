@@ -1,6 +1,6 @@
-import { existsSync, rmSync, mkdirSync } from "fs";
-import { join } from "path";
-import { tmpdir } from "os";
+import { existsSync, mkdirSync, rmSync } from "node:fs";
+import { tmpdir } from "node:os";
+import { join } from "node:path";
 import { CACHE_PATHS } from "../config.js";
 
 /**
@@ -9,14 +9,14 @@ import { CACHE_PATHS } from "../config.js";
 export function cleanPackageManagerCache(packageManager: string): void {
   const cachePaths = CACHE_PATHS[packageManager as keyof typeof CACHE_PATHS];
   if (!cachePaths) return;
-  
+
   const pathsToClean = Array.isArray(cachePaths) ? cachePaths : [cachePaths];
-  pathsToClean.forEach((cachePath) => {
+  for (const cachePath of pathsToClean) {
     if (cachePath && existsSync(cachePath)) {
       console.log(`  Cleaning package manager cache: ${cachePath}`);
       rmSync(cachePath, { recursive: true, force: true });
     }
-  });
+  }
 }
 
 /**
@@ -54,4 +54,3 @@ export function cleanupTempCacheDir(tempCacheDir: string | null): void {
     }
   }
 }
-

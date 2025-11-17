@@ -1,4 +1,4 @@
-import { execSync, spawn, type ChildProcess } from "child_process";
+import { type ChildProcess, execSync, spawn } from "node:child_process";
 import * as p from "@clack/prompts";
 import type { BenchmarkResult } from "../types/index.js";
 
@@ -61,13 +61,11 @@ export function killAllChildProcesses(): void {
     return;
   }
 
-  console.log(
-    `\nKilling ${activeChildProcesses.size} active child process(es)...`
-  );
+  console.log(`\nKilling ${activeChildProcesses.size} active child process(es)...`);
 
   const processesToKill = Array.from(activeChildProcesses);
 
-  processesToKill.forEach((child) => {
+  for (const child of processesToKill) {
     try {
       if (process.platform !== "win32" && child.pid) {
         // On Unix-like systems, kill the process and all its children
@@ -91,11 +89,11 @@ export function killAllChildProcesses(): void {
     } catch (error) {
       // Process might already be dead, ignore
     }
-  });
+  }
 
   // Give processes a moment to exit gracefully, then force kill
   setTimeout(() => {
-    processesToKill.forEach((child) => {
+    for (const child of processesToKill) {
       try {
         if (process.platform !== "win32" && child.pid) {
           // Force kill the main process
@@ -117,7 +115,7 @@ export function killAllChildProcesses(): void {
       } catch (e) {
         // Ignore - process is already dead
       }
-    });
+    }
     activeChildProcesses.clear();
   }, 2000);
 }
@@ -166,4 +164,3 @@ export function setupSignalHandlers(
 
   setShouldSaveOnExit(true);
 }
-

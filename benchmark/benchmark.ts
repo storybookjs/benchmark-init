@@ -1,26 +1,19 @@
 #!/usr/bin/env node
 
-import { existsSync, rmSync, mkdirSync } from "fs";
+import { existsSync, mkdirSync, rmSync } from "node:fs";
 import * as p from "@clack/prompts";
 import { BENCHMARK_DIR, RESULTS_FILE } from "./config.js";
 
+import * as configService from "./services/configService.js";
+import * as csvService from "./services/csvService.js";
+import { loadExistingResults, removeResultsForTests } from "./services/csvService.js";
+import { parseExistingResults } from "./services/csvService.js";
+import * as loggerService from "./services/loggerService.js";
+import * as processService from "./services/processService.js";
 // Import services
 import * as promptService from "./services/promptService.js";
-import * as csvService from "./services/csvService.js";
-import * as loggerService from "./services/loggerService.js";
-import * as configService from "./services/configService.js";
 import * as testRunnerService from "./services/testRunnerService.js";
-import * as processService from "./services/processService.js";
-import {
-  removeResultsForTests,
-  loadExistingResults,
-} from "./services/csvService.js";
-import { parseExistingResults } from "./services/csvService.js";
-import type {
-  BenchmarkState,
-  BenchmarkConfig,
-  BenchmarkResult,
-} from "./types/index.js";
+import type { BenchmarkConfig, BenchmarkResult, BenchmarkState } from "./types/index.js";
 
 /**
  * Main execution
@@ -52,8 +45,7 @@ async function main(): Promise<void> {
 
   // Setup signal handlers for graceful shutdown
   processService.setupSignalHandlers(
-    (append) =>
-      csvService.saveResults(state.results, state.resultsFile, append),
+    (append) => csvService.saveResults(state.results, state.resultsFile, append),
     state.results,
     (value) => {
       state.shouldSaveOnExit = value;
@@ -91,9 +83,7 @@ async function main(): Promise<void> {
       process.exit(0);
     }
 
-    p.log.info(
-      `Found ${selection.failedConfigs.length} failed test configuration(s) to rerun`
-    );
+    p.log.info(`Found ${selection.failedConfigs.length} failed test configuration(s) to rerun`);
     const configs = selection.failedConfigs;
 
     // Remove old results for tests being rerun
@@ -105,9 +95,7 @@ async function main(): Promise<void> {
     state.shouldSaveOnExit = true;
     for (let i = 0; i < configs.length; i++) {
       const config = configs[i];
-      console.log(
-        `\n[${i + 1}/${configs.length}] Running failed test: ${config.testId}`
-      );
+      console.log(`\n[${i + 1}/${configs.length}] Running failed test: ${config.testId}`);
       await testRunnerService.runBenchmark(config, state, services);
     }
 
@@ -118,12 +106,12 @@ async function main(): Promise<void> {
   }
 
   // Generate test configurations based on selection
-  const allConfigs =
-    configService.generateConfigurationsFromSelection(selection, versions);
+  const allConfigs = configService.generateConfigurationsFromSelection(selection, versions);
 
   // Check for existing results
-  const { completed: completedTestIds, failed: failedTestIds } =
-    parseExistingResults(state.resultsFile);
+  const { completed: completedTestIds, failed: failedTestIds } = parseExistingResults(
+    state.resultsFile
+  );
   const hasExistingResults = completedTestIds.size > 0;
   const incompleteTestIds = new Set<string>(
     allConfigs.map((c) => c.testId).filter((id) => !completedTestIds.has(id))
@@ -133,9 +121,7 @@ async function main(): Promise<void> {
   let startFromScratch = false;
 
   if (hasExistingResults) {
-    p.log.info(
-      `Found ${completedTestIds.size} completed tests in existing results.`
-    );
+    p.log.info(`Found ${completedTestIds.size} completed tests in existing results.`);
     if (failedTestIds.size > 0) {
       p.log.warn(`${failedTestIds.size} test(s) failed previously.`);
     }
@@ -148,24 +134,18 @@ async function main(): Promise<void> {
 
     if (resumeMode === "resume") {
       // Filter out completed tests
-      configs = allConfigs.filter(
-        (config) => !completedTestIds.has(config.testId)
-      );
+      configs = allConfigs.filter((config) => !completedTestIds.has(config.testId));
       p.log.success(
         `Resuming: ${configs.length} tests remaining (${completedTestIds.size} already completed)`
       );
     } else if (resumeMode === "rerun-failed") {
       // Only rerun failed tests
-      configs = allConfigs.filter((config) =>
-        failedTestIds.has(config.testId)
-      );
+      configs = allConfigs.filter((config) => failedTestIds.has(config.testId));
       p.log.success(`Rerunning ${configs.length} failed test(s)`);
     } else if (resumeMode === "rerun-failed-and-resume") {
       // Rerun failed tests AND continue with incomplete ones
       configs = allConfigs.filter(
-        (config) =>
-          failedTestIds.has(config.testId) ||
-          !completedTestIds.has(config.testId)
+        (config) => failedTestIds.has(config.testId) || !completedTestIds.has(config.testId)
       );
       p.log.success(
         `Rerunning ${failedTestIds.size} failed test(s) and continuing with ${incompleteTestIds.size} incomplete test(s) (${configs.length} total)`
@@ -182,10 +162,7 @@ async function main(): Promise<void> {
       resumeMode === "rerun-failed-and-resume"
     ) {
       const testsToRerun = new Set<string>(configs.map((c) => c.testId));
-      const existingResults = loadExistingResults(
-        state.resultsFile,
-        testsToRerun
-      );
+      const existingResults = loadExistingResults(state.resultsFile, testsToRerun);
       state.results.push(...existingResults);
     }
   } else {
@@ -237,11 +214,7 @@ async function main(): Promise<void> {
         packageManager: config.packageManager,
         features: config.features.name,
         withCache: config.withCache ? "yes" : "no",
-        withPlaywrightCache: hasTestFeature
-          ? config.withPlaywrightCache
-            ? "yes"
-            : "no"
-          : "-",
+        withPlaywrightCache: hasTestFeature ? (config.withPlaywrightCache ? "yes" : "no") : "-",
         iterations: state.iterationsPerTest,
         successCount: 0,
         durationMean: "0.00",
@@ -270,4 +243,3 @@ async function main(): Promise<void> {
 
 // Run if executed directly
 main();
-

@@ -1,13 +1,9 @@
 import * as p from "@clack/prompts";
 import { isCancel } from "@clack/prompts";
-import {
-  DEFAULT_VERSION_SUGGESTIONS,
-  PACKAGE_MANAGERS,
-  FEATURE_COMBINATIONS,
-} from "../config.js";
-import { parseExistingResults } from "./csvService.js";
+import { DEFAULT_VERSION_SUGGESTIONS, FEATURE_COMBINATIONS, PACKAGE_MANAGERS } from "../config.js";
 import { RESULTS_FILE } from "../config.js";
-import type { Version, TestSelection } from "../types/index.js";
+import type { TestSelection, Version } from "../types/index.js";
+import { parseExistingResults } from "./csvService.js";
 
 /**
  * Prompt for Storybook versions to test
@@ -50,9 +46,7 @@ export async function promptForVersions(): Promise<Version[]> {
       process.exit(0);
     }
 
-    versions = DEFAULT_VERSION_SUGGESTIONS.filter((v) =>
-      selectedDefaultVersions.includes(v.name)
-    );
+    versions = DEFAULT_VERSION_SUGGESTIONS.filter((v) => selectedDefaultVersions.includes(v.name));
   } else {
     // Allow user to add custom versions
     const customVersions: Version[] = [];
@@ -124,11 +118,14 @@ export async function promptForTestCombinations(
   versions: Version[]
 ): Promise<TestSelection | null> {
   // Check if there are existing results with failed tests
-  const { failed: failedTestIds, failedConfigs } =
-    parseExistingResults(RESULTS_FILE);
+  const { failed: failedTestIds, failedConfigs } = parseExistingResults(RESULTS_FILE);
   const hasFailedTests = failedTestIds.size > 0;
 
-  const runModeOptions = [
+  const runModeOptions: Array<{
+    value: string;
+    label: string;
+    hint?: string;
+  }> = [
     { value: "all", label: "Run all tests" },
     { value: "configure", label: "Configure specific combinations" },
   ];
@@ -248,8 +245,11 @@ export async function promptForIterations(): Promise<number> {
     placeholder: "1",
     initialValue: "1",
     validate(value) {
-      const num = parseInt(value, 10);
-      if (isNaN(num) || num < 1) {
+      if (!value) {
+        return "Please enter a number greater than 0";
+      }
+      const num = Number.parseInt(value, 10);
+      if (Number.isNaN(num) || num < 1) {
         return "Please enter a number greater than 0";
       }
       if (num > 100) {
@@ -263,7 +263,7 @@ export async function promptForIterations(): Promise<number> {
     process.exit(0);
   }
 
-  return parseInt(iterationsInput, 10);
+  return Number.parseInt(iterationsInput, 10);
 }
 
 /**
@@ -271,8 +271,7 @@ export async function promptForIterations(): Promise<number> {
  */
 export async function promptForSmokeTest(): Promise<boolean> {
   const enableSmokeTestInput = await p.confirm({
-    message:
-      "Run smoke tests after Storybook init? (storybook -- --smoke-test)",
+    message: "Run smoke tests after Storybook init? (storybook -- --smoke-test)",
     initialValue: false,
   });
 
@@ -347,4 +346,3 @@ export async function promptForConfirmation(
 
   return shouldContinue;
 }
-

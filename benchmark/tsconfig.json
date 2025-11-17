@@ -15,13 +15,6 @@
     "noEmit": true,
     "types": ["node"]
   },
-  "include": [
-    "**/*.ts"
-  ],
-  "exclude": [
-    "node_modules",
-    "dist",
-    "benchmark-runs"
-  ]
+  "include": ["**/*.ts"],
+  "exclude": ["node_modules", "dist", "benchmark-runs"]
 }
-

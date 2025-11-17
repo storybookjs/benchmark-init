@@ -1,4 +1,4 @@
-import type { BenchmarkConfig, Statistics, SmokeTestResult } from "../types/index.js";
+import type { BenchmarkConfig, SmokeTestResult, Statistics } from "../types/index.js";
 
 /**
  * Log benchmark start information
@@ -8,18 +8,9 @@ export function logBenchmarkStart(
   iteration: number,
   totalIterations: number
 ): void {
-  const {
-    testId,
-    version,
-    packageManager,
-    features,
-    withCache,
-    withPlaywrightCache,
-  } = config;
+  const { testId, version, packageManager, features, withCache, withPlaywrightCache } = config;
   const iterationSuffix =
-    totalIterations > 1
-      ? ` (iteration ${iteration + 1}/${totalIterations})`
-      : "";
+    totalIterations > 1 ? ` (iteration ${iteration + 1}/${totalIterations})` : "";
   console.log(`\n[${testId}${iterationSuffix}] Starting benchmark:`);
   console.log(`  Version: ${version.name}`);
   console.log(`  Package Manager: ${packageManager}`);
@@ -31,15 +22,8 @@ export function logBenchmarkStart(
 /**
  * Log benchmark result
  */
-export function logBenchmarkResult(
-  result: { success: boolean },
-  duration: number
-): void {
-  console.log(
-    `  Result: ${result.success ? "SUCCESS" : "FAILED"} (${duration.toFixed(
-      2
-    )}s)`
-  );
+export function logBenchmarkResult(result: { success: boolean }, duration: number): void {
+  console.log(`  Result: ${result.success ? "SUCCESS" : "FAILED"} (${duration.toFixed(2)}s)`);
 }
 
 /**
@@ -47,9 +31,7 @@ export function logBenchmarkResult(
  */
 export function logSmokeTestResult(result: SmokeTestResult): void {
   console.log(
-    `  Smoke Test: ${
-      result.success ? "PASSED" : "FAILED"
-    } (${result.duration.toFixed(2)}s)`
+    `  Smoke Test: ${result.success ? "PASSED" : "FAILED"} (${result.duration.toFixed(2)}s)`
   );
   if (!result.success) {
     console.log(`  Smoke Test Error: ${result.error}`);
@@ -91,4 +73,3 @@ export function logProgress(
     }/${totalConfigs} total) | ${totalRunsCompleted}/${totalRuns} total runs`
   );
 }
-

@@ -25,8 +25,7 @@ export function calculateStatistics(values: number[]): Statistics {
       : sorted[Math.floor(count / 2)];
   const min = sorted[0];
   const max = sorted[count - 1];
-  const variance =
-    values.reduce((sum, val) => sum + Math.pow(val - mean, 2), 0) / count;
+  const variance = values.reduce((sum, val) => sum + (val - mean) ** 2, 0) / count;
   const stdDev = Math.sqrt(variance);
 
   return {
@@ -38,4 +37,3 @@ export function calculateStatistics(values: number[]): Statistics {
     count,
   };
 }
-

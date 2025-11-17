@@ -1,28 +1,23 @@
-import { spawn, type ChildProcess } from "child_process";
-import { writeFile } from "fs/promises";
-import {join} from 'path'
-import { existsSync } from "fs";
-import { setupTestProject, cleanupTestProject } from "./fileSystemService.js";
+import { type ChildProcess, spawn } from "node:child_process";
+import { existsSync, writeFileSync } from "node:fs";
+import { join } from "node:path";
+import type {
+  BenchmarkConfig,
+  BenchmarkResult,
+  BenchmarkState,
+  SmokeTestResult,
+  Statistics,
+  TestResult,
+} from "../types/index.js";
 import {
   cleanPackageManagerCache,
   cleanPlaywrightCache,
-  createTempCacheDir,
   cleanupTempCacheDir,
+  createTempCacheDir,
 } from "./cacheService.js";
-import {
-  logBenchmarkStart,
-  logBenchmarkResult,
-  logSmokeTestResult,
-} from "./loggerService.js";
+import { cleanupTestProject, setupTestProject } from "./fileSystemService.js";
+import { logBenchmarkResult, logBenchmarkStart, logSmokeTestResult } from "./loggerService.js";
 import { calculateStatistics } from "./statisticsService.js";
-import type {
-  BenchmarkConfig,
-  BenchmarkState,
-  TestResult,
-  SmokeTestResult,
-  BenchmarkResult,
-  Statistics,
-} from "../types/index.js";
 
 interface Services {
   loggerService: typeof import("./loggerService.js");
@@ -41,7 +36,7 @@ export async function setupYarn2(
   testDir: string,
   processService: typeof import("./processService.js")
 ): Promise<boolean> {
-  console.log(`  Setting up Yarn 2 (berry)...`);
+  console.log("  Setting up Yarn 2 (berry)...");
 
   try {
     // Create .yarnrc.yml first with nodeLinker: node-modules
@@ -75,11 +70,10 @@ enableImmutableInstalls: false
       },
     });
 
-    console.log(`  Yarn 2 setup complete`);
+    console.log("  Yarn 2 setup complete");
     return true;
   } catch (error) {
-    const errorMessage =
-      error instanceof Error ? error.message : String(error);
+    const errorMessage = error instanceof Error ? error.message : String(error);
     console.error(`  Error setting up Yarn 2: ${errorMessage}`);
     return false;
   }
@@ -102,12 +96,7 @@ export function runStorybookInit(
   // Use the appropriate command based on package manager
   // For commands with 'init', flags come after 'init'
   // For 'create' commands, flags come after the version
-  const flags = [
-    "--yes",
-    "--no-dev",
-    `--package-manager=${packageManager}`,
-    ...features.flags,
-  ];
+  const flags = ["--yes", "--no-dev", `--package-manager=${packageManager}`, ...features.flags];
   const flagsString = flags.join(" ");
 
   let fullCommand: string;
@@ -333,22 +322,10 @@ export async function runBenchmarkIteration(
   state: BenchmarkState,
   services: Services
 ): Promise<TestResult> {
-  const {
-    version,
-    packageManager,
-    features,
-    withCache,
-    withPlaywrightCache,
-    testId,
-  } = config;
+  const { version, packageManager, features, withCache, withPlaywrightCache, testId } = config;
 
-  const {
-    loggerService,
-    cacheService,
-    fileSystemService,
-    testRunnerService,
-    processService,
-  } = services;
+  const { loggerService, cacheService, fileSystemService, testRunnerService, processService } =
+    services;
 
   loggerService.logBenchmarkStart(config, iteration, state.iterationsPerTest);
 
@@ -378,10 +355,7 @@ export async function runBenchmarkIteration(
   try {
     // Setup yarn2 if needed
     if (packageManager === "yarn2") {
-      const yarn2SetupSuccess = await testRunnerService.setupYarn2(
-        testDir,
-        processService
-      );
+      const yarn2SetupSuccess = await testRunnerService.setupYarn2(testDir, processService);
       if (!yarn2SetupSuccess) {
         return {
           success: false,
@@ -405,7 +379,7 @@ export async function runBenchmarkIteration(
     loggerService.logBenchmarkResult(result, result.duration);
 
     // Run smoke test if enabled and init was successful
-    let smokeTestResult: SmokeTestResult | null = null;
+    let smokeTestResult: SmokeTestResult | undefined = undefined;
     if (state.enableSmokeTest && result.success) {
       smokeTestResult = await testRunnerService.runSmokeTest(
         testDir,
@@ -433,14 +407,7 @@ export async function runBenchmark(
   state: BenchmarkState,
   services: Services
 ): Promise<BenchmarkResult> {
-  const {
-    version,
-    packageManager,
-    features,
-    withCache,
-    withPlaywrightCache,
-    testId,
-  } = config;
+  const { version, packageManager, features, withCache, withPlaywrightCache, testId } = config;
 
   const { loggerService, statisticsService, csvService } = services;
 
@@ -474,8 +441,8 @@ export async function runBenchmark(
     allFailed && errors.length > 0
       ? errors[0] // Use first error if all failed
       : errors.length > 0
-      ? `${errors.length} iteration(s) failed`
-      : "";
+        ? `${errors.length} iteration(s) failed`
+        : "";
 
   // Check if test feature is selected
   const hasTestFeature = features.flags.includes("test");
@@ -488,8 +455,8 @@ export async function runBenchmark(
       ? smokeTestPassCount === smokeTestResults.length
         ? "passed"
         : smokeTestFailCount === smokeTestResults.length
-        ? "failed"
-        : "partial"
+          ? "failed"
+          : "partial"
       : "-";
 
   // Record result with statistics
@@ -499,11 +466,7 @@ export async function runBenchmark(
     packageManager,
     features: features.name,
     withCache: withCache ? "yes" : "no",
-    withPlaywrightCache: hasTestFeature
-      ? withPlaywrightCache
-        ? "yes"
-        : "no"
-      : "-",
+    withPlaywrightCache: hasTestFeature ? (withPlaywrightCache ? "yes" : "no") : "-",
     iterations: state.iterationsPerTest,
     successCount,
     durationMean: stats.mean,
@@ -535,4 +498,3 @@ export async function runBenchmark(
 
   return record;
 }
-
