@@ -116,7 +116,7 @@ export function runStorybookInit(
       fullCommand = `pnpm create ${version.command} ${flagsString}`;
       break;
     case "npm":
-      fullCommand = `npm create ${version.command} ${flagsString}`;
+      fullCommand = `npm create ${version.command} -- ${flagsString}`;
       break;
     default:
       // Fallback to npx for unknown package managers
